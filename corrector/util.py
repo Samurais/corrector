@@ -1,7 +1,28 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Author: XuMing <xuming624@qq.com>
-# Brief: 
+#===============================================================================
+#
+# Copyright (c) 2017 <> All Rights Reserved
+#
+#
+# File: /Users/hain/tmp/test_py
+# Author: Hai Liang Wang
+# Date: 2018-03-05:15:13:11
+#
+#===============================================================================
+
+"""
+   
+"""
+from __future__ import print_function
+from __future__ import division
+
+__copyright__ = "Copyright (c) 2017 . All Rights Reserved"
+__author__    = "Hai Liang Wang<hailiang.hl.wang@gmail.com>, XuMing <xuming624@qq.com>"
+__date__      = "2018-03-05:15:13:11"
+
 import os
+import sys
 import pickle
 import re
 
@@ -11,6 +32,31 @@ from zhtools.langconv import Converter
 
 jieba.initialize()
 
+if sys.version_info[0] < 3:
+    reload(sys)
+    sys.setdefaultencoding("utf-8")
+    # raise "Must be using Python 3"
+else:
+    unicode = str
+
+def any2utf8(text, errors='strict', encoding='utf8'):
+    """Convert a string (unicode or bytestring in `encoding`), to bytestring in utf8."""
+    if isinstance(text, unicode):
+        return text.encode('utf8')
+    # do bytestring -> unicode -> utf8 full circle, to ensure valid utf8
+    return unicode(text, encoding, errors=errors).encode('utf8')
+
+
+to_utf8 = any2utf8
+
+def any2unicode(text, encoding='utf8', errors='strict'):
+    """Convert a string (bytestring in `encoding` or unicode), to unicode."""
+    if isinstance(text, unicode):
+        return text
+    return unicode(text, encoding, errors=errors)
+
+
+to_unicode = any2unicode
 
 def remove_punctuation(strs):
     """
