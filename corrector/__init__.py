@@ -299,18 +299,22 @@ def score_sentence(sentence):
             words.append(word)
             score = _get_ngram_score(word, model=_get_model(n))
             scores.append(score)
+            logging.debug("score_sentence[%s] _get_ngram_score[%s]: %s| score: %s", n, i, word, score)
         ngram_words.append(words)
         ngrams_scores = list(zip(words, [round(score, 3) for score in scores]))
-        logging.debug(ngrams_scores)
+        logging.debug("ngrams_scores[%s]: %s", n, ngrams_scores)
         ngram_scores.append(scores)
         # 移动窗口补全得分
         for _ in range(n - 1):
             scores.insert(0, scores[0])
             scores.append(scores[-1])
+        logging.debug("score_sentence[%s] len(scores): %s| len(sentence): %s", n, len(scores), len(sentence))
         avg_scores = [sum(scores[i:i + n]) / len(scores[i:i + n]) for i in range(len(sentence))]
         ngram_avg_scores.append(avg_scores)
+    logging.debug("score_sentence ngram_avg_scores: %s", ngram_avg_scores)
     # 取拼接后的平均得分
     sent_scores = list(np.average(np.array(ngram_avg_scores), axis=0))
+    logging.debug("score_sentence sent_scores: %s", sent_scores)
     scores, mad, y_score, median = _mad_score(sent_scores)
     maybe_error_indices, _ = _get_maybe_error_index(scores, y_score, median)
     merge_range = []
@@ -324,11 +328,13 @@ def correct(sentence):
     tokens = tokenize(sentence)
     logging.debug('segment sentens is: %s', ''.join([str(token) for token in tokens]))
     seg_range = [[token[1], token[2]] for token in tokens]
+    logging.debug("seg_range: %s", seg_range)
     _, _, maybe_error_range = score_sentence(sentence)
     maybe_error_ranges = []
     if maybe_error_range:
         logging.debug('maybe error range: %s', maybe_error_range)
         maybe_error_ranges = _merge_ranges(_overlap_ranges(maybe_error_range, seg_range))
+        logging.debug("maybe_error_ranges: %s", maybe_error_ranges)
         for r in maybe_error_ranges:
             start_index, end_index = r
             logging.debug('maybe error words: %s', sentence[start_index:end_index])
@@ -352,7 +358,9 @@ class Test(unittest.TestCase):
 
     def test_spell(self):
         logging.info("test_spell")
-        line = '我们现今所使用的大部分舒学符号' # ，你们用的什么婊点符号
+        line = '单次测量值的绝对偏差在平军值中所占的百分率'
+        # line = '你们用的什么婊点符号'
+        # line = '我们现今所使用的大部分舒学符号'
         logging.info('input sentence is: %s', line)
         corrected_sent, correct_ranges = correct(line)
         logging.info('corrected_sent: %s', corrected_sent)

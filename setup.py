@@ -15,7 +15,7 @@ Welcome
 
 setup(
     name='error-correction',
-    version='1.0.2',
+    version='1.0.3',
     description='Chinese Text Error Correction for Natural Language Processing and Understanding',
     long_description=LONGDOC,
     author='Hai Liang Wang',
