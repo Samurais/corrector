@@ -1,23 +1,65 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Author: XuMing <xuming624@qq.com>
-# Brief: 
+#===============================================================================
+#
+# Copyright (c) 2017 <> All Rights Reserved
+#
+#
+# File: /Users/hain/tmp/test_py
+# Author: Hai Liang Wang
+# Date: 2018-03-05:15:13:11
+#
+#===============================================================================
+
+"""
+   
+"""
+from __future__ import print_function
+from __future__ import division
+
+__copyright__ = "Copyright (c) 2017 . All Rights Reserved"
+__author__    = "Hai Liang Wang<hailiang.hl.wang@gmail.com>, XuMing <xuming624@qq.com>"
+__date__      = "2018-03-05:15:13:11"
+
+import os
+import sys
+curdir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(curdir)
+
+if sys.version_info[0] < 3:
+    reload(sys)
+    sys.setdefaultencoding("utf-8")
+    # raise "Must be using Python 3"
+
+# Get ENV
+ENVIRON = os.environ.copy()
+
+from absl import flags   #absl-py
+from absl import logging #absl-py
+
+FLAGS = flags.FLAGS
+
 import codecs
 import kenlm
 import math
-import os
 from collections import Counter
 
 import numpy as np
 import config
 from util import tokenize, preprocess, load_pkl, dump_pkl
 
+FLAGS = flags.FLAGS
+
+'''
+model files
+'''
 bigram_path = 'data/kenlm/zhwiki_bigram.klm'
 bigram = kenlm.Model(bigram_path)
-print('Loaded bigram language model from {}'.format(bigram_path))
+logging.info('Loaded bigram language model from {}'.format(bigram_path))
 
 trigram_path = 'data/kenlm/zhwiki_trigram.klm'
 trigram = kenlm.Model(trigram_path)
-print('Loaded trigram language model from {}'.format(trigram_path))
+logging.info('Loaded trigram language model from {}'.format(trigram_path))
 
 text_path = 'data/train_input.txt'
 text_counter_path = 'data/train_input_counter.pkl'
@@ -25,7 +67,7 @@ text_counter_path = 'data/train_input_counter.pkl'
 if os.path.exists(text_counter_path):
     char_counter = load_pkl(text_counter_path)
 else:
-    print('generate counter from text file:', text_path)
+    logging.info('generate counter from text file:', text_path)
     char_counter = Counter((codecs.open(text_path, 'r', encoding='utf-8').read()))
     dump_pkl(char_counter, text_counter_path)
 
@@ -38,7 +80,7 @@ def load_same_pinyin(path, sep='\t'):
     """
     result = dict()
     if not os.path.exists(path):
-        print("file not exists:", path)
+        logging.warn("file not exists:", path)
         return result
     with codecs.open(path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -63,7 +105,7 @@ def load_same_stroke(path, sep='\t'):
     """
     result = dict()
     if not os.path.exists(path):
-        print("file not exists:", path)
+        logging.warn("file not exists:", path)
         return result
     with codecs.open(path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -79,7 +121,7 @@ same_pinyin_model_path = 'data/same_pinyin.pkl'
 if os.path.exists(same_pinyin_model_path):
     same_pinyin = load_pkl(same_pinyin_model_path)
 else:
-    print('load same pinyin from text file:', same_pinyin_text_path)
+    logging.info('load same pinyin from text file:', same_pinyin_text_path)
     same_pinyin = load_same_pinyin(same_pinyin_text_path)
     dump_pkl(same_pinyin, same_pinyin_model_path)
 
@@ -89,7 +131,7 @@ same_stroke_model_path = 'data/same_stroke.pkl'
 if os.path.exists(same_stroke_model_path):
     same_stroke = load_pkl(same_stroke_model_path)
 else:
-    print('load same stroke from text file:', same_stroke_text_path)
+    logging.info('load same stroke from text file:', same_stroke_text_path)
     same_stroke = load_same_stroke(same_stroke_text_path)
     dump_pkl(same_stroke, same_stroke_model_path)
 
@@ -214,7 +256,7 @@ def score_sentence(sentence):
             scores.append(score)
         ngram_words.append(words)
         ngrams_scores = list(zip(words, [round(score, 3) for score in scores]))
-        print(ngrams_scores)
+        logging.debug(ngrams_scores)
         ngram_scores.append(scores)
         # 移动窗口补全得分
         for _ in range(n - 1):
@@ -272,7 +314,7 @@ def correct_chars(sentence, start_index, end_index):
     for i, c in enumerate(chars):
         # 取得所有可能正确的汉字
         maybe_chars = generate_chars(c)
-        print('num of possible replacements for {} is {}'.format(c, len(maybe_chars)))
+        logging.debug('num of possible replacements for {} is {}'.format(c, len(maybe_chars)))
         before = sentence[:start_index] + chars[:i]
         after = chars[i + 1:] + sentence[end_index:]
         correct_char = max(maybe_chars, key=lambda k: get_ngram_score(before + k + after) + math.log(5) ** (k == c))
@@ -283,29 +325,45 @@ def correct_chars(sentence, start_index, end_index):
 def correct(sentence):
     sentence = preprocess(sentence)
     tokens = tokenize(sentence)
-    print('segment sentens is:', ''.join([str(token) for token in tokens]))
+    logging.debug('segment sentens is: %s', ''.join([str(token) for token in tokens]))
     seg_range = [[token[1], token[2]] for token in tokens]
     _, _, maybe_error_range = score_sentence(sentence)
     maybe_error_ranges = []
     if maybe_error_range:
-        print('maybe error range:', maybe_error_range)
+        logging.debug('maybe error range: %s', maybe_error_range)
         maybe_error_ranges = merge_ranges(overlap_ranges(maybe_error_range, seg_range))
         for range in maybe_error_ranges:
             start_index, end_index = range
-            print('maybe error words:', sentence[start_index:end_index])
+            logging.debug('maybe error words: %s', sentence[start_index:end_index])
             corrected_words = correct_chars(sentence, start_index, end_index)
-            print('corrected words:', corrected_words)
+            logging.debug('corrected words: %s', corrected_words)
             sentence = sentence[:start_index] + corrected_words + sentence[end_index:]
     return sentence, maybe_error_ranges
 
+import unittest
 
-def main():
-    line = '我们现今所使用的大部分舒学符号' # ，你们用的什么婊点符号
-    print('input sentence is:', line)
-    corrected_sent, correct_ranges = correct(line)
-    print('corrected_sent:', corrected_sent)
-    print('correct_ranges:', correct_ranges)
+# run testcase: python /Users/hain/tmp/test_py Test.testExample
+class Test(unittest.TestCase):
+    '''
+    
+    '''
+    def setUp(self):
+        pass
 
+    def tearDown(self):
+        pass
+
+    def test_spell(self):
+        logging.info("test_spell")
+        line = '我们现今所使用的大部分舒学符号' # ，你们用的什么婊点符号
+        logging.info('input sentence is: %s', line)
+        corrected_sent, correct_ranges = correct(line)
+        logging.info('corrected_sent: %s', corrected_sent)
+        logging.info('correct_ranges: %s', correct_ranges)
+
+def test():
+    unittest.main()
 
 if __name__ == '__main__':
-    main()
+    FLAGS([__file__, '--verbosity', '1']) # DEBUG 1; INFO 0; WARNING -1
+    test()

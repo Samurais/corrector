@@ -99,3 +99,4 @@ ENV/
 
 # mypy
 .mypy_cache/
+data/train_input_counter.pkl

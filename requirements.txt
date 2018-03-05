@@ -1,6 +1,4 @@
 kenlm==0.0.0
 numpy
 pypinyin
-Keras
-scikit-learn
-tensorflow
+absl-py==0.1.10
